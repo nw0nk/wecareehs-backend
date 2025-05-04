@@ -10,7 +10,7 @@ require("dotenv").config();
 const app = express();
 
 // Path to the React build output (adjust if needed)
-const publicDir = path.join(__dirname, '../public_html');
+const publicDir = path.join(__dirname, '../build');
 
 app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json());

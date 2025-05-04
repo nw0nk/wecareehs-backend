@@ -1,10 +1,13 @@
 const admin = require('firebase-admin');
-const serviceAccount = require('./firebaseServiceAccount.json');
 
+// Initialize Firebase using environment variables
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') // Fix newline formatting
+  })
 });
 
 const db = admin.firestore();
-
-module.exports = db; 
+module.exports = db;

@@ -49,12 +49,29 @@ router.post('/login', async (req, res) => {
 
 router.get('/dashboard', verifyToken, async (req, res) => {
   try {
+    if (!db) {
+      console.error('Firestore db is not initialized.');
+      return res.status(500).json({ error: 'Firestore not initialized' });
+    }
+
+    // Fetch user registrations from Firestore 'users' collection
+    const usersSnapshot = await db.collection('users').get();
+    const userRegistrations = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log(`Fetched ${userRegistrations.length} user registrations`);
+
+    // Fetch feedback form data from Firestore 'feedback' collection
+    const feedbackSnapshot = await db.collection('feedback').get();
+    const feedbacks = feedbackSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log(`Fetched ${feedbacks.length} feedback entries`);
+
     res.json({
       totalVisits: 1250,
       uniqueVisitors: 530,
       recentActivity: [
         { action: 'System login', timestamp: new Date() }
-      ]
+      ],
+      userRegistrations,
+      feedbacks
     });
   } catch (error) {
     console.error('Dashboard error:', error);

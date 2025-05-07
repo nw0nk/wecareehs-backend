@@ -1,0 +1,50 @@
+/* --- BANNER SECTION (WITH AMBIENT BORDER & RESPONSIVENESS) --- */
+.construction-banner {
+    position: relative;
+    width: 90%;
+    max-width: 1100px;
+    height: 600px;
+    background-color: #222;
+    background-image: url('const.jpg');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    border-radius: 15px;
+
+    /* ✅ Ambient Glowing Border */
+    border: 5px solid transparent;
+    background-clip: padding-box;
+    box-shadow: 0 0 15px rgba(255, 140, 0, 0.7),
+        0 0 30px rgba(255, 140, 0, 0.5),
+        0 0 40px rgba(255, 140, 0, 0.3);
+
+    /* ✅ Animated Pulse Effect */
+    animation: borderGlow 3s infinite alternate ease-in-out;
+
+    /* ✅ Centers the banner */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px auto;
+    transition: all 0.3s ease-in-out;
+}
+
+/* --- Title & Subtitle --- */
+.banner-title {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #ff8c00;
+    text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.7);
+    margin-bottom: 15px;
+}
+
+/* --- Bullet Points (Orange Theme) --- */
+.banner-keypoints li::before {
+    content: "•";
+    color: #ff8c00;
+    font-size: 1.5rem;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}

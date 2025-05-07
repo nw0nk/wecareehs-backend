@@ -1,0 +1,62 @@
+.banner-title {
+    font-size: 2.5rem;
+    /* ✅ Reduced default size */
+    font-weight: bold;
+    color: #007fff;
+    text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.7);
+    margin-bottom: 15px;
+}
+
+/* --- MOBILE RESPONSIVE DESIGN FIXES --- */
+@media (max-width: 768px) {
+    .behaviour-banner {
+        width: 95%;
+        height: 700px;
+        /* ✅ Increased height for better text placement */
+        padding: 15px;
+        background-position: center center;
+        background-size: cover;
+    }
+
+    .banner-content {
+        flex-direction: column;
+        /* ✅ Mobile: Stack text */
+        justify-content: center;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .banner-text {
+        max-width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .banner-title {
+        font-size: 1.8rem;
+        /* ✅ Further reduced for mobile */
+        text-align: center;
+    }
+
+    .banner-subtitle {
+        font-size: 1rem;
+        /* ✅ Adjusted for better readability */
+        text-align: center;
+    }
+
+    .banner-keypoints {
+        max-width: 100%;
+        text-align: left;
+    }
+
+    .banner-keypoints ul {
+        padding-left: 10px;
+    }
+
+    .banner-keypoints li {
+        font-size: 1rem;
+    }
+
+    .banner-keypoints li::before {
+        font-size: 1.2rem;
+    }
+}

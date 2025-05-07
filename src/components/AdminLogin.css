@@ -1,0 +1,367 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+
+.admin-login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: 
+    linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+    url('https://source.unsplash.com/1600x900/?office,professional') no-repeat center/cover;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-login-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(0, 150, 255, 0.15) 0%, transparent 70%);
+  animation: admin-pulse 8s ease-in-out infinite;
+}
+
+@keyframes admin-pulse {
+  0% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 0.3; }
+  100% { transform: scale(1); opacity: 0.5; }
+}
+
+.admin-login-box {
+  background: rgba(0, 0, 0, 0.85);
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(0, 150, 255, 0.15);
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  animation: admin-fadeInUp 0.8s ease-out;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-login-box::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(0, 150, 255, 0.15),
+    transparent
+  );
+  transform: rotate(45deg);
+  animation: admin-shine 8s linear infinite;
+}
+
+@keyframes admin-shine {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) rotate(45deg); }
+}
+
+.admin-login-header {
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.admin-login-header h2 {
+  margin: 0 0 1.5rem;
+  color: #fff;
+  font-family: 'Poppins', sans-serif;
+  font-size: 32px;
+  letter-spacing: 1.5px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  animation: admin-fadeInDown 1s ease-out;
+}
+
+.admin-login-icon {
+  font-size: 3.5rem;
+  color: #0096ff;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 0 15px rgba(0, 150, 255, 0.5);
+  animation: admin-fadeInDown 0.8s ease-out;
+}
+
+.admin-login-subtitle {
+  color: #ddd;
+  font-size: 0.9rem;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.admin-login-form {
+  width: 100%;
+}
+
+.admin-form-group {
+  margin-bottom: 1.5rem;
+  text-align: left;
+  animation: admin-fadeInUp 0.8s ease-out;
+}
+
+.admin-form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #ddd;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+
+.admin-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 14px;
+  border: 2px solid rgba(0, 150, 255, 0.2);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.admin-input-wrapper:hover,
+.admin-input-wrapper:focus-within {
+  border-color: rgba(0, 150, 255, 0.5);
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    0 0 20px rgba(0, 150, 255, 0.3);
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.admin-input-icon {
+  position: absolute;
+  left: 1rem;
+  color: #0096ff;
+  font-size: 1.2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.3s ease;
+  text-shadow: 0 0 10px rgba(0, 150, 255, 0.3);
+}
+
+.admin-form-group input {
+  width: 100%;
+  padding: 12px 12px 12px 3rem;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  color: #fff;
+  transition: all 0.3s ease;
+  letter-spacing: 0.5px;
+}
+
+.admin-form-group input:focus {
+  outline: none;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+}
+
+.admin-form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 300;
+}
+
+.admin-password-toggle {
+  position: absolute;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: #ddd;
+  cursor: pointer;
+  padding: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.3s ease;
+}
+
+.admin-password-toggle:hover {
+  color: #0096ff;
+}
+
+.admin-login-button {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(45deg, #0066ff, #3399ff);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 102, 255, 0.3);
+  letter-spacing: 1px;
+}
+
+.admin-login-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.admin-login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0, 102, 255, 0.4);
+}
+
+.admin-login-button:hover::before {
+  transform: translateX(100%);
+}
+
+.admin-login-button:disabled {
+  background: linear-gradient(45deg, #666, #888);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.admin-spinner {
+  animation: admin-spin 1s linear infinite;
+  color: #fff;
+}
+
+.admin-error-message {
+  margin-top: 1rem;
+  color: #ff4b5c;
+  padding: 12px;
+  background: rgba(255, 75, 92, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 75, 92, 0.2);
+  animation: admin-fadeInUp 0.8s ease-out;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  letter-spacing: 0.5px;
+}
+
+.admin-error-icon {
+  font-size: 1.2rem;
+}
+
+.admin-login-footer {
+  margin-top: 2rem;
+  font-size: 0.9rem;
+  color: #ddd;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.admin-login-footer a {
+  color: #0096ff;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  letter-spacing: 0.5px;
+  position: relative;
+}
+
+.admin-login-footer a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #0096ff;
+  transition: width 0.3s ease;
+}
+
+.admin-login-footer a:hover {
+  color: #fff;
+}
+
+.admin-login-footer a:hover::after {
+  width: 100%;
+}
+
+@keyframes admin-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes admin-fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes admin-fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-login-box {
+    padding: 30px;
+    margin: 20px;
+    border-radius: 12px;
+  }
+
+  .admin-login-icon {
+    font-size: 3rem;
+  }
+
+  .admin-form-group input {
+    padding: 10px 10px 10px 2.5rem;
+  }
+
+  .admin-login-button {
+    padding: 14px;
+  }
+}
+/* Remove autofill white background in Chrome */
+.admin-form-group input:-webkit-autofill,
+.admin-form-group input:-webkit-autofill:hover,
+.admin-form-group input:-webkit-autofill:focus,
+.admin-form-group input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  -webkit-text-fill-color: #fff !important;
+  transition: background-color 9999s ease-in-out 0s;
+  background-color: transparent !important;
+  caret-color: #fff;
+}
+
+/* Ensure input background stays transparent */
+.admin-form-group input {
+  background-color: transparent !important;
+}
+

@@ -13,6 +13,20 @@ async function getUserByEmail(email) {
   return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
 }
 
+// Helper: Log auth event to Firestore
+async function logAuthEvent(userId, email, eventType) {
+  try {
+    await db.collection('authLogs').add({
+      userId,
+      email,
+      eventType, // 'login' or 'logout'
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error('Error logging auth event:', error);
+  }
+}
+
 // Normal user login route
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -33,6 +47,8 @@ router.post('/login', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
     );
+    // Log login event
+    await logAuthEvent(user.id, user.email, 'login');
     res.json({
       token,
       user: {
@@ -67,6 +83,8 @@ router.post('/admin/login', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
     );
+    // Log admin login event
+    await logAuthEvent(user.id, user.email, 'login');
     res.json({
       token,
       user: {
@@ -81,28 +99,77 @@ router.post('/admin/login', async (req, res) => {
   }
 });
 
-// Admin dashboard route
-router.get('/admin/dashboard', async (req, res) => {
-  try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'No token provided' });
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Check if user is admin
-    if (decoded.role !== 'admin') {
+const verifyToken = require('../middleware/auth');
+
+router.get('/admin/dashboard', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Unauthorized admin access' });
     }
 
+    if (!db) {
+      console.error('Firestore db is not initialized.');
+      return res.status(500).json({ error: 'Firestore not initialized' });
+    }
+
+    // Fetch user registrations from Firestore 'users' collection
+    const usersSnapshot = await db.collection('users').get();
+    const userRegistrations = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log(`Fetched ${userRegistrations.length} user registrations`);
+    if (userRegistrations.length === 0) {
+      console.warn('Warning: No user registrations found in Firestore.');
+    }
+
+    // Fetch feedback form data from Firestore 'feedback' collection
+    const feedbackSnapshot = await db.collection('feedback').get();
+    const feedbacks = feedbackSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log(`Fetched ${feedbacks.length} feedback entries`);
+    if (feedbacks.length === 0) {
+      console.warn('Warning: No feedback entries found in Firestore.');
+    }
+
+    // Fetch auth logs from Firestore 'authLogs' collection
+    const logsSnapshot = await db.collection('authLogs').orderBy('timestamp', 'desc').limit(100).get();
+    const authLogs = logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log(`Fetched ${authLogs.length} authentication logs`);
+    if (authLogs.length === 0) {
+      console.warn('Warning: No authentication logs found in Firestore.');
+    }
+
     res.json({
-      totalVisits: 1250,
-      uniqueVisitors: 530,
-      recentActivity: [
-        { action: 'System login', timestamp: new Date() }
-      ]
+      userRegistrations,
+      feedbacks,
+      authLogs
     });
   } catch (error) {
     console.error('Dashboard error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// New route to fetch auth logs for admin
+router.get('/admin/auth-logs', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Unauthorized admin access' });
+    }
+
+    if (!db) {
+      console.error('Firestore db is not initialized.');
+      return res.status(500).json({ error: 'Firestore not initialized' });
+    }
+
+    const logsSnapshot = await db.collection('authLogs').orderBy('timestamp', 'desc').limit(100).get();
+    const authLogs = logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log(`Fetched ${authLogs.length} authentication logs`);
+    if (authLogs.length === 0) {
+      console.warn('Warning: No authentication logs found in Firestore.');
+    }
+
+    res.json({ authLogs });
+  } catch (error) {
+    console.error('Auth logs error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

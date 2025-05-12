@@ -49,6 +49,8 @@ router.post('/login', async (req, res) => {
 
 router.get('/dashboard', verifyToken, async (req, res) => {
   try {
+    console.log('Dashboard route accessed');
+
     if (!db) {
       console.error('Firestore db is not initialized.');
       return res.status(500).json({ error: 'Firestore not initialized' });

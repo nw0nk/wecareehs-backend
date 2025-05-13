@@ -1,0 +1,44 @@
+/* Main container */
+.about-container {
+    max-width: 1000px;
+    margin: auto;
+    padding: 40px;
+    background: #1a1a1a;
+    color: #ffffff;
+    border-radius: 10px;
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 1s ease-in-out;
+}
+
+/* Titles */
+.about-title,
+.section-title {
+    text-align: center;
+    color: #ff4b5c;
+    margin-bottom: 20px;
+    font-family: 'Montserrat', sans-serif;
+    transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.about-title:hover,
+.section-title:hover {
+    transform: scale(1.05);
+    color: #ff6b6b;
+}
+
+/* Keyframes for fade-in effect */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

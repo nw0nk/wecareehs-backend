@@ -1,0 +1,162 @@
+/* Global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Body and HTML */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  /* Add a default font */
+}
+
+body {
+  background-image: url(back.png);
+  background-size: cover;
+  /* Ensure the background covers the entire screen */
+  background-position: center;
+  /* Center the background image */
+}
+
+/* App container */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Content area */
+.content {
+  flex: 1;
+  padding: 20px;
+  /* Add padding for better spacing */
+}
+
+/* Footer styling */
+.footer {
+  position: relative;
+  width: 100%;
+  background-color: #333;
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+  font-size: 0.9em;
+}
+
+.footer:hover {
+  background-color: #444;
+  color: #ddd;
+}
+
+/* Footer content */
+.footer-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.footer-links {
+  display: flex;
+  gap: 15px;
+}
+
+.footer-links a {
+  color: #ccc;
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  color: #fff;
+}
+
+/* Scroll-to-top button */
+.scroll-to-top {
+  position: absolute;
+  right: 60px;
+  bottom: 20px;
+  background-color: #555;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  padding: 10px;
+  cursor: pointer;
+}
+
+/* Media Queries for Responsiveness */
+
+/* For tablets (768px - 1024px) */
+@media (max-width: 1024px) {
+  .content {
+    padding: 15px;
+    /* Reduce padding for tablets */
+  }
+
+  .footer-links {
+    flex-direction: column;
+    /* Stack links vertically on tablets */
+    gap: 10px;
+  }
+
+  .scroll-to-top {
+    right: 30px;
+    /* Adjust position for tablets */
+  }
+}
+
+/* For mobile devices (up to 767px) */
+@media (max-width: 767px) {
+  .content {
+    padding: 10px;
+    /* Reduce padding for mobile */
+  }
+
+  .footer {
+    padding: 15px;
+    /* Reduce footer padding for mobile */
+  }
+
+  .footer-links {
+    flex-direction: column;
+    /* Stack links vertically on mobile */
+    gap: 8px;
+  }
+
+  .scroll-to-top {
+    right: 20px;
+    /* Adjust position for mobile */
+    bottom: 10px;
+    padding: 8px;
+    /* Reduce button size for mobile */
+  }
+}
+
+/* For very small mobile devices (up to 480px) */
+@media (max-width: 480px) {
+  .content {
+    padding: 5px;
+    /* Further reduce padding for very small devices */
+  }
+
+  .footer {
+    font-size: 0.8em;
+    /* Reduce font size for very small devices */
+  }
+
+  .footer-links {
+    gap: 5px;
+    /* Reduce gap between links */
+  }
+
+  .scroll-to-top {
+    right: 10px;
+    /* Adjust position for very small devices */
+    bottom: 5px;
+    padding: 6px;
+    /* Further reduce button size */
+  }
+}

@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+
+*{
+    font-family:'Roboto';
+}
+/* Home.css */
+.image-container {
+    display: flex;
+    /* Use flexbox to align items in a row */
+    justify-content: center;
+    /* Center the images horizontally */
+    flex-wrap: wrap;
+    /* Allow wrapping if the screen is too small */
+    gap: 50px;
+    /* Space between images */
+    padding: 20px;
+    /* Optional padding around the container */
+}
+
+.brand-image {
+    max-width: 100px;
+    /* Set a maximum width for the images */
+    height: auto;
+    object-fit: contain;
+    /* Maintain aspect ratio */
+}

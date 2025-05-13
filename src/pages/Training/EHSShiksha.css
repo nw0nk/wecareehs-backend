@@ -1,0 +1,108 @@
+/* Import Roboto font */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+.ehs-container {
+    font-family: 'Roboto', sans-serif;
+    color: #fff;
+    background-color: #1a1a1a;
+    padding: 40px;
+    border-radius: 8px;
+    max-width: 900px;
+    margin: 50px auto;
+    text-align: center;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 1.5s ease-in-out;
+}
+
+.ehs-title {
+    font-size: 2.5rem;
+    color: #e60023;
+    margin-bottom: 10px;
+    animation: slideIn 1s ease-out;
+}
+
+.ehs-subtitle {
+    font-size: 1.3rem;
+    color: #ff4d4d;
+    margin-bottom: 30px;
+    letter-spacing: 1px;
+}
+
+.section-title {
+    font-size: 1.8rem;
+    color: #ff4d4d;
+    margin: 20px 0;
+    position: relative;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    width: 0;
+    height: 3px;
+    background-color: #e60023;
+    transition: width 0.4s ease, left 0.4s ease;
+}
+
+.section-title:hover::after {
+    width: 100%;
+    left: 0;
+}
+
+.ehs-heading {
+    font-size: 1.5rem;
+    color: #e60023;
+    margin: 20px 0 10px;
+}
+
+.ehs-content p,
+.content-list {
+    font-size: 1rem;
+    color: #f2f2f2;
+    line-height: 1.8;
+}
+
+.content-list {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0 20px;
+    animation: fadeIn 1.2s ease-in-out;
+}
+
+.content-list li {
+    margin-bottom: 10px;
+    font-weight: bold;
+    background-color: #e60023;
+    color: #fff;
+    padding: 10px;
+    border-radius: 8px;
+    transition: transform 0.3s;
+}
+
+.content-list li:hover {
+    transform: scale(1.05);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}

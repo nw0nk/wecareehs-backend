@@ -1,0 +1,77 @@
+/* --- HEADER SECTION (WITH AMBIENT BACKGROUND & SOFT EFFECTS) --- */
+.header {
+    background: radial-gradient(circle, rgba(26, 26, 26, 0.95), rgba(10, 10, 10, 0.9));
+    color: white;
+    padding: 20px 0;
+    text-align: center;
+    position: relative;
+    z-index: 5;
+    margin-top: 60px;
+    font-family: 'Montserrat', sans-serif;
+    font-style: italic;
+    transition: background 0.5s ease, color 0.5s ease, box-shadow 0.5s ease;
+
+    /* ✅ Extended Ambient Background Effect */
+    box-shadow: inset 0 0 50px rgba(241, 130, 90, 0.2),
+        0 0 15px rgba(241, 130, 90, 0.4),
+        0 0 25px rgba(241, 130, 90, 0.3);
+    border-bottom: 3px solid rgba(241, 130, 90, 0.5);
+}
+
+/* --- Hover Effect --- */
+.header:hover {
+    background: radial-gradient(circle, rgba(36, 36, 36, 0.98), rgba(15, 15, 15, 0.9));
+    color: rgb(241, 130, 90);
+    box-shadow: inset 0 0 60px rgba(241, 130, 90, 0.25),
+        0 0 20px rgba(241, 130, 90, 0.5),
+        0 0 30px rgba(241, 130, 90, 0.4);
+}
+
+/* --- HEADER CONTENT STYLING --- */
+.header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* --- TITLE (CLEAN & BOLD) --- */
+.header-title {
+    font-size: 48px;
+    color: rgb(241, 130, 90);
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -1px;
+    animation: fadeIn 2s ease-in-out;
+}
+
+/* --- SUBTITLE (WITHOUT GLOW) --- */
+.header-subtitle {
+    font-size: 24px;
+    font-weight: 600;
+    margin-top: 10px;
+    letter-spacing: 1px;
+    color: rgb(241, 130, 90);
+    animation: fadeIn 2s ease-in-out 1s;
+}
+
+/* --- PARAGRAPH TEXT --- */
+.para {
+    font-size: 22px;
+    margin-top: 10px;
+    line-height: 1.5;
+    color: #ddd;
+    animation: fadeIn 2s ease-in-out 2s;
+}
+
+/* --- Fade In Animation --- */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

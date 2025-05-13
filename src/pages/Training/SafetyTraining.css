@@ -1,0 +1,76 @@
+/* Import Roboto font */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+.training-container {
+    font-family: 'Roboto', sans-serif;
+    color: #fff;
+    background-color: #1a1a1a;
+    padding: 40px;
+    border-radius: 8px;
+    max-width: 700px;
+    margin: 50px auto;
+    text-align: center;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 1.5s ease-in-out;
+}
+
+.training-title {
+    font-size: 2.5rem;
+    color: #e60023;
+    margin-bottom: 20px;
+    animation: slideIn 1s ease-out;
+}
+
+.training-description {
+    font-size: 1.1rem;
+    color: #f2f2f2;
+    margin-bottom: 30px;
+    line-height: 1.8;
+}
+
+.training-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.training-list li {
+    background-color: #e60023;
+    color: #fff;
+    padding: 15px 20px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    transition: transform 0.3s, background-color 0.3s;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.training-list li:hover {
+    background-color: #ff4d4d;
+    transform: scale(1.05);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

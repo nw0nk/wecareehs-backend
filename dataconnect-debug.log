@@ -1,0 +1,9 @@
+I0507 17:23:58.169339   13556 load.go:37] Reloading schema and connectors...
+I0507 17:23:58.187888   13556 control.go:73] [/emulator/ecomm 09b2] UpdateResources(): done
+Schema: sources: schema\schema.gql [2088B] 
+Connector "default": sources: connector\mutations.gql [1233B] connector\queries.gql [1802B] 
+I0507 17:23:58.208911   13556 collector.go:107] schema extensions wrote into "C:\\Users\\pdn\\OneDrive\\Documents\\VSCode\\proj\\ecomm\\ecomm\\dataconnect\\.dataconnect\\schema"
+Generated sources: prelude.gql [71117B] 
+I0507 17:23:58.208911   13556 load.go:115] Finished reloading
+I0507 17:23:58.209977   13556 dev.go:95] Listening on address (HTTP + gRPC): 127.0.0.1:9399
+I0507 17:23:58.210985   13556 dev.go:95] Listening on address (HTTP + gRPC): [::1]:9399

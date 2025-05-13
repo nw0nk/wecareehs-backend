@@ -1,0 +1,200 @@
+/* === Professional Container === */
+.product-carousel-container {
+    width: 100%;
+    max-width: 900px; /* Original resolution maintained */
+    margin: 4rem auto;
+    padding: 40px 0;
+    background: 
+        linear-gradient(215deg, #080808 0%, #121212 100%),
+        url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3OLi4ubm5uVlZWPj4+NjY19fX2JiYl/f39ra2uRkZGZmZlpaWmXl5dvb29xcXGTk5NnZ2c8TV1mAAAAG3RSTlNAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAvEOwtAAAFVklEQVR4XpWWB67c2BUFb3g557T/hRo9/WUMZHlgr4Bg8Z4qQgQJlHI4A8SzFVrapvmTF9O7dmYRFZ60YiBhJRCgh1FYhiLAmdvX0CzTOpNE77ME0Zty/nWWzchDtiqrmQDeuv3powQ5ta2eN0FY0InkqDD73lT9c9lEzwUNqgFHs9VQce3TVClFCQrSTfOiYkVJQBmpbq2L6iZavPnAPcoU0dSw0SUTqz/GtrGuXfbyyBniKykOWQWGqwwMA7QiYAxi+IlPdqo+hYHnUt5ZPfnsHJyNiDtnpJyayNBkF6cWoYGAMY92U2hXHF/C1M8uP/ZtYdiuj26UdAdQQSXQErwSOMzt/XWRWAz5GuSBIkwG1H3FabJ2OsUOUhGC6tK4EMtJO0ttC6IBD3kM0ve0tJwMdSfjZo+EEISaeTr9P3wYrGjXqyC1krcKdhMpxEnt5JetoulscpyzhXN5FRpuPHvGQIJRQ7V0Dw1pT2x0+Fmv9+45/rzrNHP+MhJgyjJmDW5RQliclYUvicT7Y0fPdRPbOVU2Uc3UMi60k2MS4bivTelQGIbazxEdfZetYcJPzhPDgQZaxG6p2ptMMGticY5JoCcYktLS0BS79VZoJConf9Ww0S5dyqVEGmzUZBXAwKpPkaHJAwL+TMuQWR4RlWYWYGp+2d4jf2M7qMC2ElSzvQbE3FEK7qizjR9BZvOr9u7XauoYa3B0lNfqnpFBZ6F1EFsQeklAq2/6VzW7Bq6F3AHgKUtK5hrJVX5DphjCqPLAotlWq2KkBV6Qr0MqGQc4Hlq6RZV4Ab2WpNJso9AR5mGYNl6iV1IQMUAuYZUzw4zc0jIBe2gqlWoSjEM4R3rFiw2B4T5jCg2Shh3SyN1yeD3D5bTFNSY9DcqEIpywX7uKwC8fJFEK1MSpXTFjZMepHdgLXMdnrEKQdSS6R9YoV0ZEvEKUTU6EFN0jqQ2gY8Hgecg8q4zlzUWBWxxo1EwE2j6w4fZBjFQ5wL8Z3WMx4rMEJXotK4jERS1ai07Mq1AJZEGyZ1vWZkCQwLd8YRGmzfP9w+7fUf8OdVl4DIsGddEog6zoEYAAAABJRU5ErkJggg=='); /* Subtle noise texture */
+    background-blend-mode: multiply;
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Premium Container Border */
+.product-carousel-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* === Professional Card Design === */
+.product-card {
+    position: relative;
+    border-radius: 14px;
+    margin: 0 10px;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    background: rgba(30,30,30,0.95);
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+/* Dual Layer Border Effect */
+.product-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    padding: 1px;
+    background: linear-gradient(45deg, 
+        rgba(100,217,255,0.15) 0%,
+        rgba(255,100,217,0.1) 50%,
+        rgba(100,217,255,0.15) 100%);
+    -webkit-mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+    mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: border-glow 3s infinite;
+}
+
+@keyframes border-glow {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+}
+
+/* Inner Glow Effect */
+.product-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    box-shadow: inset 0 0 12px rgba(0,0,0,0.4);
+    pointer-events: none;
+}
+
+/* === Image Treatment === */
+.product-image {
+    width: 100%;
+    height: 300px; /* Original resolution maintained */
+    object-fit: cover;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: brightness(0.95) contrast(1.05);
+    transform-origin: center center;
+}
+
+.product-card:hover .product-image {
+    transform: scale(1.06);
+    filter: brightness(1) contrast(1);
+}
+
+/* === Premium Title Animation === */
+.product-title {
+    position: absolute;
+    bottom: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.9);
+    color: #fff;
+    padding: 16px 32px;
+    border-radius: 30px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    width: max-content;
+    max-width: 80%;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.product-card:hover .product-title {
+    bottom: 20px;
+    opacity: 1;
+}
+
+/* Title Underline Animation */
+.product-title::after {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 2px;
+    background: #64d9ff;
+    transition: all 0.3s ease 0.2s;
+}
+
+.product-card:hover .product-title::after {
+    width: 60px;
+}
+
+/* === Professional Dot Navigation === */
+.slick-dots {
+    bottom: 20px;
+}
+
+.slick-dots li {
+    margin: 0 4px;
+}
+
+.slick-dots li button::before {
+    color: rgba(255,255,255,0.2);
+    font-size: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slick-dots li.slick-active button::before {
+    color: #64d9ff;
+    transform: scale(1.6);
+    filter: drop-shadow(0 0 4px rgba(100,217,255,0.5));
+}
+
+/* === Hover Shine Effect === */
+.product-card:hover::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg,
+        rgba(255,255,255,0) 25%,
+        rgba(255,255,255,0.1) 50%,
+        rgba(255,255,255,0) 75%);
+    animation: shine 1.2s;
+    z-index: 1;
+}
+
+@keyframes shine {
+    100% { transform: translate(100%, 100%) rotate(45deg); }
+}
+
+/* === Responsive Design (Original Breakpoints Maintained) === */
+@media (max-width: 1024px) {
+    .product-card {
+        margin: 0 8px;
+    }
+    
+    .product-title {
+        font-size: 1rem;
+        padding: 12px 24px;
+    }
+}
+
+@media (max-width: 600px) {
+    .product-card {
+        margin: 0;
+    }
+    
+    .product-title {
+        width: 90%;
+        max-width: none;
+        padding: 12px;
+        font-size: 0.9rem;
+    }
+}

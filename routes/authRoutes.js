@@ -5,7 +5,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const net = require('net');
 const tls = require('tls');
-const nodemailer = require('nodemailer');
 
 const ADMIN_EMAIL = 'pradnyeshk5605@gmail.com';
 
@@ -30,30 +29,70 @@ async function logAuthEvent(userId, email, eventType) {
   }
 }
 
-// Helper: Send email using Nodemailer
+// Helper: Send email using Gmail SMTP without external modules
 async function sendEmail(to, subject, htmlContent) {
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.NO_REPLY_EMAIL, // No-reply email address
-      pass: process.env.NO_REPLY_EMAIL_PASS, // App password or email password
-    },
+  return new Promise((resolve, reject) => {
+    const smtpServer = 'smtp.gmail.com';
+    const smtpPort = 587;
+    const emailUser = process.env.NO_REPLY_EMAIL;
+    const emailPass = process.env.NO_REPLY_EMAIL_PASS;
+
+    const socket = net.createConnection(smtpPort, smtpServer, () => {
+      socket.write('EHLO smtp.gmail.com\r\n');
+    });
+
+    socket.on('data', (data) => {
+      const response = data.toString();
+
+      if (response.startsWith('220')) {
+        socket.write('STARTTLS\r\n');
+      } else if (response.startsWith('250') && response.includes('STARTTLS')) {
+        const secureSocket = tls.connect(
+          {
+            socket,
+            host: smtpServer,
+            servername: smtpServer, // Ensure the server name is provided for TLS
+          },
+          () => {
+            secureSocket.write(`EHLO smtp.gmail.com\r\n`);
+          }
+        );
+
+        secureSocket.on('data', (secureData) => {
+          const secureResponse = secureData.toString();
+
+          if (secureResponse.startsWith('250')) {
+            secureSocket.write(`AUTH LOGIN\r\n`);
+          } else if (secureResponse.startsWith('334')) {
+            secureSocket.write(Buffer.from(emailUser).toString('base64') + '\r\n');
+          } else if (secureResponse.includes('334')) {
+            secureSocket.write(Buffer.from(emailPass).toString('base64') + '\r\n');
+          } else if (secureResponse.startsWith('235')) {
+            secureSocket.write(
+              `MAIL FROM:<${emailUser}>\r\nRCPT TO:<${to}>\r\nDATA\r\n`
+            );
+          } else if (secureResponse.startsWith('354')) {
+            secureSocket.write(
+              `Subject: ${subject}\r\nContent-Type: text/html\r\n\r\n${htmlContent}\r\n.\r\n`
+            );
+          } else if (secureResponse.startsWith('250') && secureResponse.includes('OK')) {
+            secureSocket.write('QUIT\r\n');
+            resolve('Email sent successfully');
+          }
+        });
+
+        secureSocket.on('error', (err) => {
+          console.error('TLS Error:', err);
+          reject(err);
+        });
+      }
+    });
+
+    socket.on('error', (err) => {
+      console.error('Socket Error:', err);
+      reject(err);
+    });
   });
-
-  const mailOptions = {
-    from: `"No Reply" <${process.env.NO_REPLY_EMAIL}>`,
-    to,
-    subject,
-    html: htmlContent,
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully');
-  } catch (error) {
-    console.error('Error sending email:', error);
-    throw new Error('Failed to send email');
-  }
 }
 
 // Normal user login route

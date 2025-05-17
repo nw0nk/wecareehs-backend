@@ -3,8 +3,20 @@ const router = express.Router();
 const db = require('../firebase');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
 const ADMIN_EMAIL = 'pradnyeshk5605@gmail.com';
+
+// Configure Nodemailer with no-reply email
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com', // Use Gmail's SMTP server
+  port: 587, // Use port 587 for TLS
+  secure: false, // Use TLS (not SSL)
+  auth: {
+    user: process.env.NO_REPLY_EMAIL, // No-reply email address
+    pass: process.env.NO_REPLY_EMAIL_PASS // App password or email password
+  }
+});
 
 // Helper: Get user by email from Firestore
 async function getUserByEmail(email) {
@@ -218,11 +230,26 @@ router.post('/forgot-password', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
-    // Construct reset link
-    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
-    // TODO: Send email with resetLink (implement email sending here)
-    console.log(`Password reset link for ${email}: ${resetLink}`);
-    res.json({ message: 'Password reset link sent to your email (check console in dev mode).' });
+    // Construct reset link using API_BASE_URL
+    const resetLink = `${API_BASE_URL}/reset-password/${resetToken}`;
+
+    // Email options
+    const mailOptions = {
+      from: `"No Reply" <${process.env.NO_REPLY_EMAIL}>`, // No-reply email address
+      to: email,
+      subject: 'Password Reset Request',
+      html: `
+        <p>Hello,</p>
+        <p>You requested to reset your password. Click the link below to reset it:</p>
+        <a href="${resetLink}">${resetLink}</a>
+        <p>If you did not request this, please ignore this email.</p>
+      `
+    };
+
+    // Send email
+    await transporter.sendMail(mailOptions);
+
+    res.json({ message: 'Password reset link sent to your email.' });
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -310,5 +337,10 @@ router.post('/register', async (req, res) => {
     });
   }
 });
+
+const LOCAL_API_BASE_URL = "http://localhost:5000";
+const RENDER_API_BASE_URL = "https://wecareehs-backend.onrender.com";
+
+const API_BASE_URL = process.env.USE_RENDER === "true" ? RENDER_API_BASE_URL : LOCAL_API_BASE_URL;
 
 module.exports = router;

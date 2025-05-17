@@ -245,7 +245,13 @@ router.post('/forgot-password', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
-    // Construct reset link using API_BASE_URL
+
+    // Ensure API_BASE_URL is correctly set
+    const API_BASE_URL = process.env.USE_RENDER === "true"
+      ? "https://wecareehs-backend.onrender.com"
+      : "http://localhost:5000";
+
+    // Construct reset link
     const resetLink = `${API_BASE_URL}/reset-password/${resetToken}`;
 
     // Send email

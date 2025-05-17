@@ -3,9 +3,6 @@ const router = express.Router();
 const db = require('../firebase');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const net = require('net');
-const tls = require('tls');
-const sgMail = require('sendgrid').mail;
 const nodemailer = require('nodemailer');
 
 const ADMIN_EMAIL = 'pradnyeshk5605@gmail.com';

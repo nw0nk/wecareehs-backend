@@ -3,20 +3,10 @@ const router = express.Router();
 const db = require('../firebase');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
+const net = require('net');
+const tls = require('tls');
 
 const ADMIN_EMAIL = 'pradnyeshk5605@gmail.com';
-
-// Configure Nodemailer with no-reply email
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com', // Use Gmail's SMTP server
-  port: 587, // Use port 587 for TLS
-  secure: false, // Use TLS (not SSL)
-  auth: {
-    user: process.env.NO_REPLY_EMAIL, // No-reply email address
-    pass: process.env.NO_REPLY_EMAIL_PASS // App password or email password
-  }
-});
 
 // Helper: Get user by email from Firestore
 async function getUserByEmail(email) {
@@ -37,6 +27,69 @@ async function logAuthEvent(userId, email, eventType) {
   } catch (error) {
     console.error('Error logging auth event:', error);
   }
+}
+
+// Helper: Send email using Gmail SMTP
+async function sendEmail(to, subject, htmlContent) {
+  return new Promise((resolve, reject) => {
+    const smtpServer = 'smtp.gmail.com';
+    const smtpPort = 587;
+    const emailUser = process.env.NO_REPLY_EMAIL;
+    const emailPass = process.env.NO_REPLY_EMAIL_PASS;
+
+    const socket = net.createConnection(smtpPort, smtpServer, () => {
+      socket.write('EHLO smtp.gmail.com\r\n');
+    });
+
+    socket.on('data', (data) => {
+      const response = data.toString();
+
+      if (response.startsWith('220')) {
+        socket.write('STARTTLS\r\n');
+      } else if (response.startsWith('250') && response.includes('STARTTLS')) {
+        const secureSocket = tls.connect(
+          {
+            socket,
+            host: smtpServer,
+          },
+          () => {
+            secureSocket.write(`EHLO smtp.gmail.com\r\n`);
+          }
+        );
+
+        secureSocket.on('data', (secureData) => {
+          const secureResponse = secureData.toString();
+
+          if (secureResponse.startsWith('250')) {
+            secureSocket.write(`AUTH LOGIN\r\n`);
+          } else if (secureResponse.startsWith('334')) {
+            secureSocket.write(Buffer.from(emailUser).toString('base64') + '\r\n');
+          } else if (secureResponse.includes('334')) {
+            secureSocket.write(Buffer.from(emailPass).toString('base64') + '\r\n');
+          } else if (secureResponse.startsWith('235')) {
+            secureSocket.write(
+              `MAIL FROM:<${emailUser}>\r\nRCPT TO:<${to}>\r\nDATA\r\n`
+            );
+          } else if (secureResponse.startsWith('354')) {
+            secureSocket.write(
+              `Subject: ${subject}\r\nContent-Type: text/html\r\n\r\n${htmlContent}\r\n.\r\n`
+            );
+          } else if (secureResponse.startsWith('250') && secureResponse.includes('OK')) {
+            secureSocket.write('QUIT\r\n');
+            resolve('Email sent successfully');
+          }
+        });
+
+        secureSocket.on('error', (err) => {
+          reject(err);
+        });
+      }
+    });
+
+    socket.on('error', (err) => {
+      reject(err);
+    });
+  });
 }
 
 // Normal user login route
@@ -233,21 +286,15 @@ router.post('/forgot-password', async (req, res) => {
     // Construct reset link using API_BASE_URL
     const resetLink = `${API_BASE_URL}/reset-password/${resetToken}`;
 
-    // Email options
-    const mailOptions = {
-      from: `"No Reply" <${process.env.NO_REPLY_EMAIL}>`, // No-reply email address
-      to: email,
-      subject: 'Password Reset Request',
-      html: `
-        <p>Hello,</p>
-        <p>You requested to reset your password. Click the link below to reset it:</p>
-        <a href="${resetLink}">${resetLink}</a>
-        <p>If you did not request this, please ignore this email.</p>
-      `
-    };
-
     // Send email
-    await transporter.sendMail(mailOptions);
+    const subject = 'Password Reset Request';
+    const htmlContent = `
+      <p>Hello,</p>
+      <p>You requested to reset your password. Click the link below to reset it:</p>
+      <a href="${resetLink}">${resetLink}</a>
+      <p>If you did not request this, please ignore this email.</p>
+    `;
+    await sendEmail(email, subject, htmlContent);
 
     res.json({ message: 'Password reset link sent to your email.' });
   } catch (error) {

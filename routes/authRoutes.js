@@ -33,13 +33,13 @@ async function sendEmail(to, subject, htmlContent) {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: process.env.NO_REPLY_EMAIL, // No-reply email address
-      pass: process.env.NO_REPLY_EMAIL_PASS, // App password or email password
+      user: 'wecareehs@gmail.com', // Your domain email
+      pass: process.env.NO_REPLY_EMAIL_PASS, // App password for Gmail
     },
   });
 
   const mailOptions = {
-    from: `"No Reply" <${process.env.NO_REPLY_EMAIL}>`,
+    from: '"WeCareEHS Support" <wecareehs@gmail.com>', // Friendly "From" name
     to,
     subject,
     html: htmlContent,

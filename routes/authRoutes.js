@@ -252,7 +252,7 @@ router.post('/forgot-password', async (req, res) => {
       : "http://localhost:5000";
 
     // Construct reset link
-    const resetLink = `${API_BASE_URL}/reset-password/${resetToken}`;
+    const resetLink = `${API_BASE_URL}/reset-password/${resetToken}`; // Ensure this matches frontend route
 
     // Send email
     const subject = 'Password Reset Request';

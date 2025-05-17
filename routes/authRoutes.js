@@ -38,11 +38,13 @@ async function sendEmail(to, subject, htmlContent) {
     const emailPass = process.env.NO_REPLY_EMAIL_PASS;
 
     const socket = net.createConnection(smtpPort, smtpServer, () => {
+      console.log('Connected to SMTP server');
       socket.write('EHLO smtp.gmail.com\r\n');
     });
 
     socket.on('data', (data) => {
       const response = data.toString();
+      console.log('SMTP Response:', response);
 
       if (response.startsWith('220')) {
         socket.write('STARTTLS\r\n');
@@ -54,12 +56,14 @@ async function sendEmail(to, subject, htmlContent) {
             servername: smtpServer, // Ensure the server name is provided for TLS
           },
           () => {
+            console.log('TLS connection established');
             secureSocket.write(`EHLO smtp.gmail.com\r\n`);
           }
         );
 
         secureSocket.on('data', (secureData) => {
           const secureResponse = secureData.toString();
+          console.log('TLS Response:', secureResponse);
 
           if (secureResponse.startsWith('250')) {
             secureSocket.write(`AUTH LOGIN\r\n`);

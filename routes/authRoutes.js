@@ -246,13 +246,14 @@ router.post('/forgot-password', async (req, res) => {
       { expiresIn: '1h' }
     );
 
-    // Ensure API_BASE_URL is correctly set
-    const API_BASE_URL = process.env.USE_RENDER === "true"
-      ? "https://wecareehs-backend.onrender.com"
-      : "http://localhost:3000"; // Use localhost:3000 for frontend
+    // Determine the base URL dynamically
+    const isLocalhost = req.headers.origin?.includes('localhost');
+    const API_BASE_URL = isLocalhost
+      ? "http://localhost:3000" // Localhost frontend
+      : "https://wecareehs.in"; // Production domain
 
     // Construct reset link
-    const resetLink = `${API_BASE_URL}/reset-password/${resetToken}`; // Ensure this matches frontend route
+    const resetLink = `${API_BASE_URL}/reset-password/${resetToken}`;
 
     // Send email
     const subject = 'Password Reset Request';

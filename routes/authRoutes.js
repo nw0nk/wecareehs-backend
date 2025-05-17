@@ -51,6 +51,7 @@ async function sendEmail(to, subject, htmlContent) {
           {
             socket,
             host: smtpServer,
+            servername: smtpServer, // Ensure the server name is provided for TLS
           },
           () => {
             secureSocket.write(`EHLO smtp.gmail.com\r\n`);

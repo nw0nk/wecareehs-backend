@@ -204,8 +204,49 @@ router.get('/dashboard', async (req, res) => {
   }
 });
 
-module.exports = router;
+// Forgot password - send reset link
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await getUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({ error: 'No user found with that email' });
+    }
+    // Generate reset token
+    const resetToken = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    // Construct reset link
+    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
+    // TODO: Send email with resetLink (implement email sending here)
+    console.log(`Password reset link for ${email}: ${resetLink}`);
+    res.json({ message: 'Password reset link sent to your email (check console in dev mode).' });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
+// Reset password - set new password
+router.post('/reset-password/:token', async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    // Update user password in Firestore
+    await db.collection('users').doc(userId).update({ password: hashedPassword });
+    res.json({ message: 'Password reset successful' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(400).json({ error: 'Invalid or expired token' });
+  }
+});
 
 // Registration route
 router.post('/register', async (req, res) => {

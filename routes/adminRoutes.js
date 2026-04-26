@@ -4,80 +4,131 @@ const db = require('../firebase');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const verifyToken = require('../middleware/auth');
+const { requireAdmin } = require('../middleware/auth');
+const { authLimiter } = require('../middleware/rateLimiter');
+const { validateLogin } = require('../middleware/validateInput');
 
-const ADMIN_EMAIL = 'pradnyeshk5605@gmail.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'pradnyeshk5605@gmail.com';
 
-// Helper: Get user by email from Firestore
 async function getUserByEmail(email) {
   const snapshot = await db.collection('users').where('email', '==', email).get();
   if (snapshot.empty) return null;
   return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
 }
 
-router.post('/login', async (req, res) => {
+/**
+ * POST /api/admin/login
+ * Admin login — validates role claim in JWT payload after bcrypt check
+ */
+router.post('/login', authLimiter, validateLogin, async (req, res) => {
   const { email, password } = req.body;
   try {
     if (email !== ADMIN_EMAIL) {
-      return res.status(403).json({ error: 'Unauthorized admin access' });
+      // Generic message — don't reveal that admin email check failed
+      return res.status(401).json({ error: 'Invalid credentials.' });
     }
+
     const user = await getUserByEmail(email);
     if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+      return res.status(401).json({ error: 'Invalid credentials.' });
     }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Invalid credentials.' });
     }
+
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: 'admin' },
       process.env.JWT_SECRET,
-      { expiresIn: '8h' }
+      { expiresIn: '2h' }
     );
+
     res.json({
       token,
-      user: {
-        _id: user.id,
-        email: user.email,
-        role: 'admin'
-      }
+      user: { _id: user.id, email: user.email, role: 'admin', isAdmin: true },
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Admin login error:', error);
+    res.status(500).json({ error: 'Server error. Please try again later.' });
   }
 });
 
-router.get('/dashboard', verifyToken, async (req, res) => {
+/**
+ * GET /api/admin/dashboard
+ * Admin dashboard — protected by verifyToken + requireAdmin (role-based)
+ */
+router.get('/dashboard', verifyToken, requireAdmin, async (req, res) => {
   try {
-    console.log('Dashboard route accessed');
-
     if (!db) {
-      console.error('Firestore db is not initialized.');
-      return res.status(500).json({ error: 'Firestore not initialized' });
+      return res.status(500).json({ error: 'Database not initialized.' });
     }
 
-    // Fetch user registrations from Firestore 'users' collection
+    // Fetch users — NEVER return password hashes
     const usersSnapshot = await db.collection('users').get();
-    const userRegistrations = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    console.log(`Fetched ${userRegistrations.length} user registrations`);
+    const userRegistrations = usersSnapshot.docs.map(doc => {
+      const { password, ...safeData } = doc.data();
+      return { id: doc.id, ...safeData };
+    });
 
-    // Fetch feedback form data from Firestore 'feedback' collection
+    // Fetch feedback
     const feedbackSnapshot = await db.collection('feedback').get();
     const feedbacks = feedbackSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    console.log(`Fetched ${feedbacks.length} feedback entries`);
+
+    // Fetch security logs
+    const securityLogsSnapshot = await db.collection('securityLogs')
+      .orderBy('timestamp', 'desc')
+      .limit(50)
+      .get();
+    const securityLogs = securityLogsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Fetch Analytics (Visitors)
+    const analyticsDoc = await db.collection('analytics').doc('globalStats').get();
+    let totalVisitors = 0;
+    if (analyticsDoc.exists) {
+      totalVisitors = analyticsDoc.data().totalVisitors || 0;
+    }
 
     res.json({
-      totalVisits: 1250,
-      uniqueVisitors: 530,
-      recentActivity: [
-        { action: 'System login', timestamp: new Date() }
-      ],
       userRegistrations,
-      feedbacks
+      feedbacks,
+      securityLogs,
+      totalVisitors
     });
   } catch (error) {
     console.error('Dashboard error:', error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+/**
+ * POST /api/admin/unlock/:email
+ * Admin can manually unlock a locked account
+ */
+router.post('/unlock/:email', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const { email } = req.params;
+    const snapshot = await db.collection('loginAttempts')
+      .where('email', '==', email)
+      .limit(1)
+      .get();
+
+    if (!snapshot.empty) {
+      await snapshot.docs[0].ref.update({ attempts: 0, lockedUntil: null });
+    }
+
+    // Log admin unlock action
+    await db.collection('authLogs').add({
+      eventType: 'admin_account_unlock',
+      targetEmail: email,
+      performedBy: req.user.email,
+      timestamp: new Date(),
+    });
+
+    res.json({ message: `Account for ${email} has been unlocked.` });
+  } catch (error) {
+    console.error('Account unlock error:', error);
+    res.status(500).json({ error: 'Server error.' });
   }
 });
 

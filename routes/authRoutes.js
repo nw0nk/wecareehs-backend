@@ -60,6 +60,7 @@ function publicUser(user) {
     username: user.username || '',
     pfpUrl: user.pfpUrl || '',
     role: user.role || 'user',
+    isAdmin: user.isAdmin === true || user.role === 'admin',
   };
 }
 
@@ -289,11 +290,7 @@ router.post('/admin/login', authLimiter, async (req, res) => {
     await logAuthEvent(user.id, user.email, 'login');
     res.json({
       token,
-      user: {
-        _id: user.id,
-        email: user.email,
-        role: 'admin'
-      }
+      user: publicUser(user),
     });
   } catch (error) {
     console.error('Admin login error:', error);

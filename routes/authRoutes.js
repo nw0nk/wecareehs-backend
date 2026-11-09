@@ -178,6 +178,21 @@ router.post('/login', authLimiter, async (req, res) => {
   }
 });
 
+// ── Read own profile (session sync — survives logout/storage wipes) ──────────
+router.get('/profile', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    const snap = await db.collection('users').doc(userId).get();
+    if (!snap.exists) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    res.json({ user: publicUser({ id: snap.id, ...snap.data() }) });
+  } catch (error) {
+    console.error('Profile fetch error:', error);
+    res.status(500).json({ error: 'Could not load profile.' });
+  }
+});
+
 // ── Update profile: username (unique) + photo ───────────────────────────────
 router.patch('/profile', authMiddleware, async (req, res) => {
   try {

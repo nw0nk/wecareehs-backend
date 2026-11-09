@@ -20,4 +20,14 @@ const verifyToken = (req, res, next) => {
   }
 };
 
+// Role guard for routes that use a permissive verifier and check role after
+const requireAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
+
 module.exports = verifyToken;
+module.exports.verifyToken = verifyToken;
+module.exports.requireAdmin = requireAdmin;

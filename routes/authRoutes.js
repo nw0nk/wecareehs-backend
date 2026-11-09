@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const verifyToken = require('../middleware/auth');
+const authMiddleware = require('../middleware/authMiddleware');
 const { authLimiter, forgotPasswordLimiter } = require('../middleware/rateLimiter');
 
 const ADMIN_EMAIL = 'pradnyeshk5605@gmail.com';
@@ -177,9 +178,9 @@ router.post('/login', authLimiter, async (req, res) => {
 });
 
 // ── Update profile: username (unique) + photo ───────────────────────────────
-router.patch('/profile', verifyToken, async (req, res) => {
+router.patch('/profile', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.userId || req.user.id;
     const { username, pfpUrl } = req.body || {};
     const userRef = db.collection('users').doc(userId);
     const snap = await userRef.get();

@@ -4,6 +4,8 @@ const db = require('../firebase');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const verifyToken = require('../middleware/auth');
+const { authLimiter, forgotPasswordLimiter } = require('../middleware/rateLimiter');
 
 const ADMIN_EMAIL = 'pradnyeshk5605@gmail.com';
 
@@ -12,6 +14,52 @@ async function getUserByEmail(email) {
   const snapshot = await db.collection('users').where('email', '==', email).get();
   if (snapshot.empty) return null;
   return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+}
+
+// ── USER PROFILE (username + photo) ─────────────────────────────────────────
+// Usernames: 3–20 chars, letters/numbers/underscore, starting with a letter.
+const USERNAME_RE = /^[a-zA-Z][a-zA-Z0-9_]{2,19}$/;
+
+function isValidUsername(username) {
+  return typeof username === 'string' && USERNAME_RE.test(username.trim());
+}
+
+// Case-insensitive uniqueness check (backed by the usernameLower field)
+async function isUsernameAvailable(username, excludeUserId) {
+  const lower = username.trim().toLowerCase();
+  const snap = await db.collection('users').where('usernameLower', '==', lower).limit(2).get();
+  if (snap.empty) return true;
+  const dupe = snap.docs[0];
+  return dupe.id === excludeUserId;
+}
+
+// Profile photo: an https image URL, or a small JPEG/PNG data URL (avatars
+// are downscaled to 256×256 on the client, so they stay well under the cap).
+function isValidPfpUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  if (url.startsWith('data:image/jpeg;base64,') || url.startsWith('data:image/png;base64,')) {
+    return url.length < 350 * 1024; // ≈ 250 KB
+  }
+  try {
+    const u = new URL(url);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+// Shape sent to clients — never password hashes or internal auth fields
+function publicUser(user) {
+  return {
+    _id: user.id || user._id,
+    name: user.name || '',
+    email: user.email || '',
+    phone: user.phone || '',
+    company: user.company || '',
+    username: user.username || '',
+    pfpUrl: user.pfpUrl || '',
+    role: user.role || 'user',
+  };
 }
 
 // Helper: Log auth event to Firestore
@@ -33,13 +81,13 @@ async function sendEmail(to, subject, htmlContent) {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: 'wecareehs@gmail.com', // Your domain email
+      user: 'wecareehs@gmail.com', // Domain email
       pass: process.env.NO_REPLY_EMAIL_PASS, // App password for Gmail
     },
   });
 
   const mailOptions = {
-    from: '"WeCareEHS Support" <wecareehs@gmail.com>', // Friendly "From" name
+    from: '"WeCareEHS Support" <wecareehs@gmail.com>',
     to,
     subject,
     html: htmlContent,
@@ -54,8 +102,17 @@ async function sendEmail(to, subject, htmlContent) {
   }
 }
 
-// Normal user login route
-router.post('/login', async (req, res) => {
+// Helper: Parse Firestore Timestamp or standard JS Date safely
+function parseLockTime(lockTime) {
+  if (!lockTime) return null;
+  if (typeof lockTime.toDate === 'function') {
+    return lockTime.toDate();
+  }
+  return new Date(lockTime);
+}
+
+// Normal user login route with brute force protection and rate limiting
+router.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
   try {
     if (email === ADMIN_EMAIL) {
@@ -65,33 +122,117 @@ router.post('/login', async (req, res) => {
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+
+    // ─── BRUTE FORCE LOCK CHECK ───
+    const lockTime = parseLockTime(user.lockUntil);
+    if (lockTime && lockTime > new Date()) {
+      const remainingMinutes = Math.ceil((lockTime - new Date()) / 60000);
+      return res.status(403).json({
+        error: `Account temporarily locked due to multiple failed login attempts. Please try again in ${remainingMinutes} minute(s).`
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      const newFailedAttempts = (user.failedAttempts || 0) + 1;
+      const updates = { failedAttempts: newFailedAttempts };
+
+      if (newFailedAttempts >= 5) {
+        updates.lockUntil = new Date(Date.now() + 15 * 60 * 1000); // 15-minute lock
+        updates.failedAttempts = 0; // Reset for post-lock attempts
+        await db.collection('users').doc(user.id).update(updates);
+        return res.status(403).json({
+          error: 'Account locked due to 5 consecutive failed login attempts. Please try again after 15 minutes.'
+        });
+      } else {
+        await db.collection('users').doc(user.id).update(updates);
+        const remaining = 5 - newFailedAttempts;
+        return res.status(401).json({ error: `Invalid credentials. (${remaining} attempt(s) remaining)` });
+      }
     }
+
+    // Reset failed count on successful authentication
+    if (user.failedAttempts > 0 || user.lockUntil) {
+      await db.collection('users').doc(user.id).update({
+        failedAttempts: 0,
+        lockUntil: null
+      });
+    }
+
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role || 'user' },
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
     );
-    // Log login event
+
     await logAuthEvent(user.id, user.email, 'login');
     res.json({
       token,
-      user: {
-        _id: user.id,
-        email: user.email,
-        role: user.role || 'user'
-      }
+      user: publicUser(user),
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: error.message || 'Server error' });
+    res.status(500).json({ error: 'An error occurred during authentication.' });
   }
 });
 
-// Admin login route
-router.post('/admin/login', async (req, res) => {
+// ── Update profile: username (unique) + photo ───────────────────────────────
+router.patch('/profile', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { username, pfpUrl } = req.body || {};
+    const userRef = db.collection('users').doc(userId);
+    const snap = await userRef.get();
+    if (!snap.exists) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const updates = {};
+
+    if (username !== undefined) {
+      const trimmed = String(username || '').trim();
+      if (trimmed) {
+        if (!isValidUsername(trimmed)) {
+          return res.status(400).json({
+            error: 'Username must be 3–20 characters: letters, numbers and underscores, starting with a letter.',
+          });
+        }
+        if (!(await isUsernameAvailable(trimmed, userId))) {
+          return res.status(409).json({ error: 'This username is already taken.' });
+        }
+        updates.username = trimmed;
+        updates.usernameLower = trimmed.toLowerCase();
+      } else {
+        updates.username = '';
+        updates.usernameLower = '';
+      }
+    }
+
+    if (pfpUrl !== undefined) {
+      const url = String(pfpUrl || '').trim();
+      if (url && !isValidPfpUrl(url)) {
+        return res.status(400).json({
+          error: 'Photo must be an image URL or a file under ~250 KB.',
+        });
+      }
+      updates.pfpUrl = url;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'Nothing to update.' });
+    }
+
+    await userRef.update(updates);
+    const fresh = (await userRef.get()).data();
+    res.json({ user: publicUser({ id: userId, ...fresh }) });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ error: 'Could not update profile.' });
+  }
+});
+
+// Admin login route with brute force protection and rate limiting
+router.post('/admin/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
   try {
     if (email !== ADMIN_EMAIL) {
@@ -101,16 +242,49 @@ router.post('/admin/login', async (req, res) => {
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+
+    // ─── ADMIN BRUTE FORCE LOCK CHECK ───
+    const lockTime = parseLockTime(user.lockUntil);
+    if (lockTime && lockTime > new Date()) {
+      const remainingMinutes = Math.ceil((lockTime - new Date()) / 60000);
+      return res.status(403).json({
+        error: `Admin access temporarily locked due to multiple failed login attempts. Please try again in ${remainingMinutes} minute(s).`
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      const newFailedAttempts = (user.failedAttempts || 0) + 1;
+      const updates = { failedAttempts: newFailedAttempts };
+
+      if (newFailedAttempts >= 5) {
+        updates.lockUntil = new Date(Date.now() + 15 * 60 * 1000); // 15-minute lock
+        updates.failedAttempts = 0;
+        await db.collection('users').doc(user.id).update(updates);
+        return res.status(403).json({
+          error: 'Admin access locked due to 5 consecutive failed login attempts. Please try again after 15 minutes.'
+        });
+      } else {
+        await db.collection('users').doc(user.id).update(updates);
+        const remaining = 5 - newFailedAttempts;
+        return res.status(401).json({ error: `Invalid credentials. (${remaining} attempt(s) remaining)` });
+      }
     }
+
+    // Reset failed count on successful authentication
+    if (user.failedAttempts > 0 || user.lockUntil) {
+      await db.collection('users').doc(user.id).update({
+        failedAttempts: 0,
+        lockUntil: null
+      });
+    }
+
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: 'admin' },
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
     );
-    // Log admin login event
+
     await logAuthEvent(user.id, user.email, 'login');
     res.json({
       token,
@@ -126,9 +300,7 @@ router.post('/admin/login', async (req, res) => {
   }
 });
 
-
-const verifyToken = require('../middleware/auth');
-
+// Admin dashboard route
 router.get('/admin/dashboard', verifyToken, async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -136,33 +308,35 @@ router.get('/admin/dashboard', verifyToken, async (req, res) => {
     }
 
     if (!db) {
-      console.error('Firestore db is not initialized.');
-      return res.status(500).json({ error: 'Firestore not initialized' });
+      return res.status(500).json({ error: 'Database service unavailable' });
     }
 
-    // Fetch user registrations from Firestore 'users' collection
     const usersSnapshot = await db.collection('users').get();
-    const userRegistrations = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    console.log(`Fetched ${userRegistrations.length} user registrations`);
-    if (userRegistrations.length === 0) {
-      console.warn('Warning: No user registrations found in Firestore.');
-    }
+    const userRegistrations = usersSnapshot.docs.map(doc => {
+      const data = doc.data();
+      // Normalize Firestore Timestamps (serializes as {_seconds, _nanoseconds}
+      // through res.json()) into ISO strings the frontend can reliably read.
+      const toISO = (v) => {
+        if (!v) return null;
+        if (v instanceof Date) return v.toISOString();
+        if (typeof v === 'object' && typeof v.toDate === 'function') return v.toDate().toISOString();
+        if (typeof v === 'object' && (v._seconds || v.seconds)) {
+          return new Date((v._seconds || v.seconds) * 1000).toISOString();
+        }
+        return null;
+      };
+      return {
+        ...data,
+        id: doc.id,
+        createdAt: toISO(data.createdAt) || data.createdAt || null,
+      };
+    });
 
-    // Fetch feedback form data from Firestore 'feedback' collection
     const feedbackSnapshot = await db.collection('feedback').get();
     const feedbacks = feedbackSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    console.log(`Fetched ${feedbacks.length} feedback entries`);
-    if (feedbacks.length === 0) {
-      console.warn('Warning: No feedback entries found in Firestore.');
-    }
 
-    // Fetch auth logs from Firestore 'authLogs' collection
     const logsSnapshot = await db.collection('authLogs').orderBy('timestamp', 'desc').limit(100).get();
     const authLogs = logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    console.log(`Fetched ${authLogs.length} authentication logs`);
-    if (authLogs.length === 0) {
-      console.warn('Warning: No authentication logs found in Firestore.');
-    }
 
     res.json({
       userRegistrations,
@@ -175,7 +349,7 @@ router.get('/admin/dashboard', verifyToken, async (req, res) => {
   }
 });
 
-// New route to fetch auth logs for admin
+// Admin auth logs route
 router.get('/admin/auth-logs', verifyToken, async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -183,16 +357,11 @@ router.get('/admin/auth-logs', verifyToken, async (req, res) => {
     }
 
     if (!db) {
-      console.error('Firestore db is not initialized.');
-      return res.status(500).json({ error: 'Firestore not initialized' });
+      return res.status(500).json({ error: 'Database service unavailable' });
     }
 
     const logsSnapshot = await db.collection('authLogs').orderBy('timestamp', 'desc').limit(100).get();
     const authLogs = logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    console.log(`Fetched ${authLogs.length} authentication logs`);
-    if (authLogs.length === 0) {
-      console.warn('Warning: No authentication logs found in Firestore.');
-    }
 
     res.json({ authLogs });
   } catch (error) {
@@ -209,12 +378,10 @@ router.get('/dashboard', async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Check if user is normal user
     if (decoded.role !== 'user') {
       return res.status(403).json({ error: 'Unauthorized user access' });
     }
 
-    // Return user dashboard data
     res.json({
       welcomeMessage: `Welcome, user ${decoded.email}`,
       recentOrders: [],
@@ -231,105 +398,151 @@ router.get('/dashboard', async (req, res) => {
   }
 });
 
-// Forgot password - send reset link
-router.post('/forgot-password', async (req, res) => {
+// Forgot password with rate limiting and user enumeration protection
+router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
   const { email } = req.body;
   try {
     const user = await getUserByEmail(email);
     if (!user) {
-      return res.status(404).json({ error: 'No user found with that email' });
+      // ─── USER ENUMERATION ATTACK PREVENTION ───
+      // Return identical confirmation message even if user does not exist to satisfy OWASP credentials check
+      return res.json({ message: 'If an account exists with that email, a password reset link has been sent.' });
     }
-    // Generate reset token
+
+    // ─── DYNAMIC SINGLE-USE SECRET SIGNATURE ───
+    // Tokens are dynamically signed using process.env.JWT_SECRET + user.password.
+    // Once the user's password updates in the DB, user.password updates, immediately
+    // invalidating this token signature across all old reset requests!
     const resetToken = jwt.sign(
       { userId: user.id, email: user.email },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET + user.password,
       { expiresIn: '1h' }
     );
 
-    // Determine the base URL dynamically
     const isLocalhost = req.headers.origin?.includes('localhost');
-    const API_BASE_URL = isLocalhost
-      ? "http://localhost:3000" // Localhost frontend
-      : "https://wecareehs.in"; // Production domain
-
-    // Construct reset link
+    const API_BASE_URL = isLocalhost ? "http://localhost:3000" : "https://wecareehs.in";
     const resetLink = `${API_BASE_URL}/reset-password/${resetToken}`;
 
-    // Send email
-    const subject = 'Password Reset Request';
+    const subject = 'Password Reset Request — WeCare EHS';
     const htmlContent = `
       <p>Hello,</p>
-      <p>You requested to reset your password. Click the link below to reset it:</p>
+      <p>You requested to reset your password for WeCare EHS. Click the link below to reset it:</p>
       <a href="${resetLink}">${resetLink}</a>
-      <p>If you did not request this, please ignore this email.</p>
+      <p>This link will expire in 1 hour and is valid for a single reset attempt.</p>
+      <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
     `;
     await sendEmail(email, subject, htmlContent);
 
-    res.json({ message: 'Password reset link sent to your email.' });
+    res.json({ message: 'If an account exists with that email, a password reset link has been sent.' });
   } catch (error) {
     console.error('Forgot password error:', error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'An error occurred while processing your request.' });
   }
 });
 
-// Reset password - set new password
+// Reset password with single-use verification and complexity check
 router.post('/reset-password/:token', async (req, res) => {
   const { token } = req.params;
   const { password } = req.body;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.userId;
-    // Hash new password
+    // 1. Decode token to fetch target user credentials
+    const decoded = jwt.decode(token);
+    if (!decoded || !decoded.email) {
+      return res.status(400).json({ error: 'Invalid reset token format' });
+    }
+
+    const user = await getUserByEmail(decoded.email);
+    if (!user) {
+      return res.status(404).json({ error: 'User no longer exists' });
+    }
+
+    // 2. Dynamic Verification: verifies token signature against JWT_SECRET + user's active password
+    jwt.verify(token, process.env.JWT_SECRET + user.password);
+
+    // 3. ─── STRONG PASSWORD COMPLEXITY CHECK ───
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        error: 'Password must contain at least 8 characters, including 1 uppercase, 1 lowercase, 1 number, and 1 special character.'
+      });
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    // Update user password in Firestore
-    await db.collection('users').doc(userId).update({ password: hashedPassword });
+
+    // Update password in Firestore and clear brute force lockout indicators
+    await db.collection('users').doc(user.id).update({
+      password: hashedPassword,
+      failedAttempts: 0,
+      lockUntil: null
+    });
+
     res.json({ message: 'Password reset successful' });
   } catch (error) {
     console.error('Reset password error:', error);
-    res.status(400).json({ error: 'Invalid or expired token' });
+    res.status(400).json({ error: 'This password reset link is invalid or has already been used.' });
   }
 });
 
-// Registration route
-router.post('/register', async (req, res) => {
+// Registration route with validation, complexity checking, and rate limiting
+router.post('/register', authLimiter, async (req, res) => {
   try {
-    const { firstName, lastName, email, password, phone, company } = req.body;
+    const { firstName, lastName, email, password, phone, company, username } = req.body;
 
-    // Validate required fields
     if (!firstName || !lastName || !email || !password || !phone) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Missing required fields',
         required: ['firstName', 'lastName', 'email', 'password', 'phone']
       });
     }
 
-    // Check if user already exists
+    // ─── STRONG PASSWORD COMPLEXITY CHECK ───
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        message: 'Password must contain at least 8 characters, including 1 uppercase, 1 lowercase, 1 number, and 1 special character.'
+      });
+    }
+
+    // Optional unique username (3–20 chars, letters/numbers/underscore)
+    const trimmedUsername = username ? String(username).trim() : '';
+    if (trimmedUsername) {
+      if (!isValidUsername(trimmedUsername)) {
+        return res.status(400).json({
+          message: 'Username must be 3–20 characters: letters, numbers and underscores, starting with a letter.',
+        });
+      }
+      if (!(await isUsernameAvailable(trimmedUsername, null))) {
+        return res.status(409).json({ message: 'This username is already taken.' });
+      }
+    }
+
     let user = await getUserByEmail(email);
     if (user) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create new user object
     const newUser = {
       name: `${firstName} ${lastName}`,
-      email,
+      email: email.trim().toLowerCase(),
       password: hashedPassword,
       phone,
       company: company || '',
+      username: trimmedUsername,
+      usernameLower: trimmedUsername.toLowerCase(),
+      pfpUrl: '',
       role: 'user',
       createdAt: new Date(),
-      isAdmin: false
+      isAdmin: false,
+      failedAttempts: 0,
+      lockUntil: null
     };
 
-    // Add user to Firestore
     const docRef = await db.collection('users').add(newUser);
 
-    // Create JWT token
     const token = jwt.sign(
       { userId: docRef.id, email: email, role: 'user' },
       process.env.JWT_SECRET,
@@ -338,25 +551,15 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({
       token,
-      user: {
-        _id: docRef.id,
-        email,
-        role: 'user'
-      }
+      user: publicUser({ id: docRef.id, ...newUser }),
     });
   } catch (error) {
-    // Log the full error for debugging
     console.error('Registration error:', error);
-    res.status(500).json({ 
-      message: 'Server error',
-      error: error.message // Always include the error message for debugging
+    // Stripped raw error.message output to avoid CWE-209 database schema information leakages
+    res.status(500).json({
+      message: 'Server error occurred during registration.'
     });
   }
 });
-
-const LOCAL_API_BASE_URL = "http://localhost:5000";
-const RENDER_API_BASE_URL = "https://wecareehs-backend.onrender.com";
-
-const API_BASE_URL = process.env.USE_RENDER === "true" ? RENDER_API_BASE_URL : LOCAL_API_BASE_URL;
 
 module.exports = router;

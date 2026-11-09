@@ -82,18 +82,10 @@ router.get('/dashboard', verifyToken, requireAdmin, async (req, res) => {
       .get();
     const securityLogs = securityLogsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // Fetch Analytics (Visitors)
-    const analyticsDoc = await db.collection('analytics').doc('globalStats').get();
-    let totalVisitors = 0;
-    if (analyticsDoc.exists) {
-      totalVisitors = analyticsDoc.data().totalVisitors || 0;
-    }
-
     res.json({
       userRegistrations,
       feedbacks,
       securityLogs,
-      totalVisitors
     });
   } catch (error) {
     console.error('Dashboard error:', error);

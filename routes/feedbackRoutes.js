@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../firebase');
+const { feedbackLimiter } = require('../middleware/rateLimiter');
 
-// POST /api/feedback - Add feedback (full schema)
-router.post('/', async (req, res) => {
+// POST /api/feedback - Add feedback (full schema) with spam rate limiting
+router.post('/', feedbackLimiter, async (req, res) => {
   try {
     const {
       name,
@@ -16,6 +17,7 @@ router.post('/', async (req, res) => {
       overall,
       comment
     } = req.body;
+    
     const docRef = await db.collection('feedback').add({
       name,
       company,
@@ -28,9 +30,12 @@ router.post('/', async (req, res) => {
       comment,
       createdAt: new Date()
     });
+    
     res.json({ success: true, id: docRef.id });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error('Feedback submission error:', err);
+    // Suppress raw database stack trace messages in production payloads
+    res.status(500).json({ success: false, error: 'Internal server error occurred.' });
   }
 });
 
@@ -41,8 +46,9 @@ router.get('/', async (req, res) => {
     const feedbacks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     res.json(feedbacks);
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error('Feedback listing error:', err);
+    res.status(500).json({ success: false, error: 'Internal server error occurred.' });
   }
 });
 
-module.exports = router; 
+module.exports = router;

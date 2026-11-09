@@ -55,13 +55,13 @@ app.use(cors({
     return callback(new Error(`CORS: origin '${origin}' is not allowed.`), false);
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
 }));
 
 // ─── 3. BODY PARSING — with size limit to prevent large payload attacks ─────
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+app.use(express.json({ limit: "512kb" }));
+app.use(express.urlencoded({ extended: true, limit: "512kb" }));
 
 // ─── 4. INPUT SANITIZATION ─────────────────────────────────────────────────
 // Sanitize all request inputs to strip XSS, null bytes, and HTML injection
